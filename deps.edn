@@ -18,7 +18,7 @@
         {:git/url "https://github.com/jolt-lang/glimmer-gtk"
          :git/sha "3d46afcd1f0c50d26483dd8e20f76cb3433602a6"}}
 
- :tasks {gui        "jolt run src/jolt/hyperjay.clj"
+ :tasks {gui        "jolt run -m jolt.hyperjay"
          x11        "jolt run cards/desktop-x11.clj"
          wayland    "jolt run cards/desktop-wayland.clj"
          single-app "jolt run cards/single-app.clj"}}

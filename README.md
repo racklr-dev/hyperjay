@@ -30,14 +30,15 @@ https://github.com/user-attachments/assets/8244db85-8892-4df0-92da-70b20468c3c6
 - a jolt binary at 0.8.28 or newer
 - libkrun + libkrunfw and a writable /dev/kvm (see the jolt-microvm README)
 - GTK4 and GLib: `apt install libgtk-4-dev` (or your distro's equivalent)
-- a VNC client (for the desktop cards) and a host X server (for the single-app card)
+- `gvncviewer` — auto-spawned by the bench for desktop cards (override with
+  `HYPERJAY_VNC_VIEWER`) — and a host X server (for the single-app card)
 
 ## Run
 
 From the repo root:
 
 ```sh
-jolt run src/jolt/hyperjay.clj   # the bench: pick a card, work the breakers
+jolt run -m jolt.hyperjay        # the bench: pick a card, work the breakers
 ```
 
 The three cards also run headlessly without the bench:
@@ -54,6 +55,15 @@ Or via the tasks in `deps.edn`: `jolt gui`, `jolt x11`, `jolt wayland`,
 KVM is a supplementary group on most hosts, so the examples expect to run
 under `sudo -u $USER --preserve-env`. The first weave apk-installs the card's
 packages into the cached alpine base; later weaves reuse it.
+
+The bench self-heals around the VMs' changing TAP leases: every boot gets a
+fresh `10.44.<n>.x` IP, so the loom re-derives each thread's VNC URL after a
+weave or reboot and reopens the viewer automatically. A running thread's row
+offers **View** (open the desktop in gvncviewer), **Copy** (put the URL on the
+clipboard), **Refresh** (restart the in-guest desktop in place), **Reboot** and
+**Cut**; the URL label is selectable, so you can also select-and-copy it by hand.
+Uncheck **Auto-open VNC viewer** in the card rack to stop it from popping the
+viewer on its own.
 
 ## The cards
 

@@ -3,7 +3,15 @@
 ;; Each card is a punched recipe — data, not code — that describes what the
 ;; loom should weave. The warp threads are the long-lived microVMs; the weft
 ;; is the shuttle of status and log events that passes through them. This
-;; namespace only holds the card catalogue: it starts nothing.
+;; namespace only holds the card catalogue: it starts nothing. The ./cards
+;; scripts are just headless CLIs that weave one card and wait.
+;;
+;; This is the whole boot config hyperjay owns: each card's :opts is handed
+;; verbatim to jolt.microvm/start!, and :finish runs once the VM is up.
+;; Everything else — kernel, initrd, OCI image, mounts, sshd, egress,
+;; networking — lives in the jolt-microvm library. To change WHAT boots, edit
+;; :opts here; to learn HOW it boots, read start!'s menu at:
+;;   https://github.com/racklr-dev/jolt-microvm/blob/4547630ef6ef5eebd79ae07c915d943f3ec89dad/src/jolt/microvm.clj#L466
 (ns jolt.hyperjay.cards
   (:require [jolt.microvm :as vm]
             [jolt.microvm.desktop :as desktop]))
