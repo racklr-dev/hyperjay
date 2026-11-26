@@ -3,7 +3,14 @@
 A **jacquard loom** for [jolt-microvm](https://github.com/racklr-dev/jolt-microvm).
 Punch a card, weave it into a warp of live microVMs, and work the **circuit box**
 from a GTK4 bench — jolt from top to bottom: [glimmer-gtk](https://github.com/jolt-lang/glimmer-gtk)
-draws, jolt-microvm runs, libkrun hosts. Native Clojure on Chez Scheme, no JVM.
+draws, jolt-microvm runs, libkrun ( okay not jolt ) hosts. Native Clojure on Chez Scheme, no JVM.
+
+
+
+https://github.com/user-attachments/assets/8244db85-8892-4df0-92da-70b20468c3c6
+
+
+
 
 ## The metaphor
 
