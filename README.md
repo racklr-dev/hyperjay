@@ -2,12 +2,13 @@
 
 A **jacquard loom** for [jolt-microvm](https://github.com/racklr-dev/jolt-microvm).
 Punch a card, weave it into a warp of live microVMs, and work the **circuit box**
-from a GTK4 bench — jolt from top to bottom: [glimmer-gtk](https://github.com/jolt-lang/glimmer-gtk)
-draws, jolt-microvm runs, libkrun ( okay not jolt ) hosts. Native Clojure on Chez Scheme, no JVM.
+from a GTK4 bench. [glimmer-gtk](https://github.com/jolt-lang/glimmer-gtk) draws the
+UI, jolt-microvm boots the VMs, and libkrun hosts them. Native Clojure on Chez
+Scheme, no JVM.
 
 
 
-https://github.com/user-attachments/assets/8244db85-8892-4df0-92da-70b20468c3c6
+![hyperjay demo](https://github.com/user-attachments/assets/8244db85-8892-4df0-92da-70b20468c3c6)
 
 
 
@@ -30,8 +31,9 @@ https://github.com/user-attachments/assets/8244db85-8892-4df0-92da-70b20468c3c6
 - a jolt binary at 0.8.28 or newer
 - libkrun + libkrunfw and a writable /dev/kvm (see the jolt-microvm README)
 - GTK4 and GLib: `apt install libgtk-4-dev` (or your distro's equivalent)
-- `gvncviewer` — auto-spawned by the bench for desktop cards (override with
-  `HYPERJAY_VNC_VIEWER`) — and a host X server (for the single-app card)
+- `gvncviewer`, auto-spawned by the bench for desktop cards; set
+  `HYPERJAY_VNC_VIEWER` to override. You also need a host X server for the
+  single-app card.
 
 ## Run
 

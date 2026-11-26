@@ -1,0 +1,4 @@
+;; Slopfuge config for hyperjay. The loom metaphor uses "weave" literally
+;; (weave a card, weave!) rather than as the tier-1 cliché, so that one hard
+;; rule is off here. Everything else runs at the defaults.
+{:ignore #{"p1/1a/weave"}}
