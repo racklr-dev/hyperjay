@@ -1,0 +1,24 @@
+;; hyperjay — a jacquard loom for jolt-microvm. Weave cards into a warp of
+;; live microVMs and work the circuit box from a GTK4 bench.
+;;
+;; Deps are pinned to exact git shas. jolt-microvm brings jolt-libkrun,
+;; jolt-exec, jolt-pty, jolt-tapmasq and jolt-oci transitively; glimmer and
+;; glimmer-gtk are the bench's reactive core and GTK4 backend.
+{:jolt/min-version "0.8.28"
+
+ :paths ["src"]
+
+ :deps {jolt-lang/jolt-microvm
+        {:git/url "https://github.com/racklr-dev/jolt-microvm"
+         :git/sha "f62b90ed927d0a1439916ab776e9c84dfd34a568"}
+        jolt-lang/glimmer
+        {:git/url "https://github.com/jolt-lang/glimmer"
+         :git/sha "a61f5ef71f56033c7a6765f400a5978ee76b7b6b"}
+        jolt-lang/glimmer-gtk
+        {:git/url "https://github.com/jolt-lang/glimmer-gtk"
+         :git/sha "3d46afcd1f0c50d26483dd8e20f76cb3433602a6"}}
+
+ :tasks {gui        "jolt run src/jolt/hyperjay.clj"
+         x11        "jolt run cards/desktop-x11.clj"
+         wayland    "jolt run cards/desktop-wayland.clj"
+         single-app "jolt run cards/single-app.clj"}}
