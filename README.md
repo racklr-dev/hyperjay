@@ -8,7 +8,7 @@ Scheme, no JVM.
 
 
 
-![hyperjay demo](https://github.com/user-attachments/assets/8244db85-8892-4df0-92da-70b20468c3c6)
+https://github.com/user-attachments/assets/8244db85-8892-4df0-92da-70b20468c3c6
 
 
 
