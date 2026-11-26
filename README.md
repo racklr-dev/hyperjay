@@ -76,4 +76,4 @@ cards/                       headless shims, one per card
 
 ## License
 
-MIT — see `LICENSE`.
+EPL-2.0 — see `LICENSE`.
