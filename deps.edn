@@ -8,9 +8,9 @@
 
  :paths ["src"]
 
- :deps {jolt-lang/jolt-microvm
+ :deps {racklr-dev/jolt-microvm
         {:git/url "https://github.com/racklr-dev/jolt-microvm"
-         :git/sha "f62b90ed927d0a1439916ab776e9c84dfd34a568"}
+         :git/sha "4547630ef6ef5eebd79ae07c915d943f3ec89dad"}
         jolt-lang/glimmer
         {:git/url "https://github.com/jolt-lang/glimmer"
          :git/sha "a61f5ef71f56033c7a6765f400a5978ee76b7b6b"}
