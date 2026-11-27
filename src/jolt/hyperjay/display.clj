@@ -142,7 +142,8 @@ void main(){ frag = texture(u_tex, v_uv); }")
                                 :frame (atom nil)
                                 :gen (atom 0)
                                 :drawn (atom 0)
-                                :sig (atom nil)}))))
+                                :sig (atom nil)
+                                :down (atom false)}))))
 
 (defonce ^:private keyboard-attached? (atom false))
 
@@ -208,6 +209,73 @@ void main(){ frag = texture(u_tex, v_uv); }")
         (let [vw aw
               vh (max 1 (Math/round (/ aw ar)))]
           [0 (quot (- ah vh) 2) vw vh])))))
+
+;; ---- mouse (the absolute touchscreen) ---------------------------------------
+;; The guest's pointer is an absolute touchscreen sized to the frame, so a GTK
+;; pointer event maps widget px -> frame px via the inverse of fit-viewport and
+;; is forwarded as BTN_TOUCH + ABS_X/ABS_Y + SYN_REPORT through the loom to the
+;; VM's .mouse file. The button-down state lives per GL area (in states) so a
+;; drag emits position updates, a plain hover does not.
+(def ^:private ev-key 1)
+(def ^:private ev-abs 3)
+(def ^:private ev-syn 0)
+(def ^:private syn-report 0)
+(def ^:private btn-touch 0x14a)
+(def ^:private abs-x 0)
+(def ^:private abs-y 1)
+
+(defn- frame-size []
+  (when-let [d (get-in @loom/warp [@loom/focus :display])]
+    [(:width d) (:height d)]))
+
+(defn unmap-pointer
+  "Map a widget-relative pointer (wx,wy) to frame coordinates for a fw x fh
+  frame letterboxed into an aw x ah widget (the inverse of fit-viewport).
+  Clamped to the frame; nil when the pointer is outside the letterboxed
+  viewport (the black bars are not part of the guest screen)."
+  [fw fh aw ah wx wy]
+  (when-let [[vx vy vw vh] (fit-viewport fw fh aw ah)]
+    (when (and (<= vx wx (+ vx vw)) (<= vy wy (+ vy vh)))
+      (let [fx (Math/round (* (/ (- wx vx) (double vw)) (double fw)))
+            fy (Math/round (* (/ (- wy vy) (double vh)) (double fh)))]
+        [(max 0 (min (dec fw) (long fx)))
+         (max 0 (min (dec fh) (long fy)))]))))
+
+(defn- emit-mouse! [type code value]
+  (loom/send-mouse-event! @loom/focus {:type type :code code :value value}))
+
+(defn button!
+  "GTK GestureClick press/release -> touchscreen BTN_TOUCH + ABS_X/ABS_Y + SYN.
+  A press also sets the per-area down flag so subsequent motion drags."
+  [area _btn pressed? x y]
+  (when-let [[fw fh] (frame-size)]
+    (when-let [[fx fy] (unmap-pointer fw fh
+                                     (gtk/widget-width area) (gtk/widget-height area)
+                                     x y)]
+      (when-let [st (get @states area)]
+        (if pressed?
+          (do (reset! (:down st) true)
+              (emit-mouse! ev-key btn-touch 1)
+              (emit-mouse! ev-abs abs-x fx)
+              (emit-mouse! ev-abs abs-y fy)
+              (emit-mouse! ev-syn syn-report 0))
+          (when @(:down st)
+            (reset! (:down st) false)
+            (emit-mouse! ev-key btn-touch 0)
+            (emit-mouse! ev-syn syn-report 0)))))))
+
+(defn motion!
+  "GTK motion -> ABS_X/ABS_Y + SYN while the button is held (a drag)."
+  [area x y]
+  (when-let [[fw fh] (frame-size)]
+    (when-let [[fx fy] (unmap-pointer fw fh
+                                     (gtk/widget-width area) (gtk/widget-height area)
+                                     x y)]
+      (when-let [st (get @states area)]
+        (when @(:down st)
+          (emit-mouse! ev-abs abs-x fx)
+          (emit-mouse! ev-abs abs-y fy)
+          (emit-mouse! ev-syn syn-report 0))))))
 
 (defn render!
   "Upload the latest decoded frame (when new) and draw the textured quad into

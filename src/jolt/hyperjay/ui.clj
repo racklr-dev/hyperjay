@@ -118,7 +118,10 @@
                            (display/realize! area)
                            (display/ensure-keyboard! area))
              :on-render (fn [area] (display/render! area))
-             :on-tick (fn [area] (display/tick! area))}])
+             :on-tick (fn [area] (display/tick! area))
+             :on-motion (fn [area x y] (display/motion! area x y))
+             :on-button (fn [area btn pressed? x y]
+                          (display/button! area btn pressed? x y))}])
 
 (defn content-pane
   "The middle pane: the focused thread's display, or guidance when none."

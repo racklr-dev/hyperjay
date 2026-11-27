@@ -10,7 +10,7 @@
 
  :deps {racklr-dev/jolt-microvm
         {:git/url "https://github.com/racklr-dev/jolt-microvm"
-         :git/sha "07eadaab4ae33eb188760741a3162f8ef6d6af57"}
+         :git/sha "789f370a2f6636f03f8af4ad87174d99594fc1ec"}
         ;; Pin jolt-oci directly so the wizard's tags/list helper resolves to the
         ;; version that has it (jolt-microvm's transitive pin predates it).
         jolt-lang/jolt-oci

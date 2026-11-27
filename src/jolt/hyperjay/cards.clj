@@ -34,14 +34,14 @@
    {:name "X11 desktop"
     :warp "Alpine X11 (Xorg modesetting + openbox + xterm) on the virtio-gpu scanout"
     :packages (desktop/profile :x11)
-    :opts {:memory-mib 1024 :cpus 2 :display true :keyboard true}
+    :opts {:memory-mib 1024 :cpus 2 :display true :keyboard true :mouse true}
     :finish desktop/start-x11!}
 
    :desktop-wayland
    {:name "Wayland desktop"
     :warp "Alpine Wayland (sway + wlroots DRM backend + foot) on the virtio-gpu scanout"
     :packages (desktop/profile :wayland)
-    :opts {:memory-mib 1024 :cpus 2 :display true :keyboard true}
+    :opts {:memory-mib 1024 :cpus 2 :display true :keyboard true :mouse true}
     :finish desktop/start-wayland!}
 
    ;; Note: this profile's :finish blocks in vm/x11-exec until the app closes,

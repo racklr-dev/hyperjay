@@ -198,6 +198,13 @@
   (when-let [v (get-in @warp [id :vm])]
     (vm/send-key! v code pressed?)))
 
+(defn send-mouse-event!
+  "Forward one Linux input event to a warp thread's virtual touchscreen/mouse.
+  The VM must have been started with :mouse (the desktop cards set it)."
+  [id {:keys [type code value]}]
+  (when-let [v (get-in @warp [id :vm])]
+    (vm/send-mouse-event! v {:type type :code code :value value})))
+
 (defn- stamp-name []
   (str "stamp-" (.format (java.text.SimpleDateFormat. "yyyyMMdd-HHmmss")
                          (java.util.Date.))))
