@@ -69,6 +69,13 @@ M0–M2.3 below were executed against it.
   larger resolution. Suspect `:virgl-flags 1` (USE_EGL) at 1280x720; try
   `:virgl-flags 0` (the plan's "2D-only MVP" value) as a fallback.
 
+- **M2.3 polish (display)** — the embedded canvas now letterbox/pillarboxes
+  the framebuffer to its native aspect: `fit-viewport` (ported from
+  jolt-libretro `play-gl`) computes the largest centered viewport, and
+  `render!` clears the full widget black then draws the quad into that rect
+  (black bars instead of stretch-on-resize). Verified against six geometries;
+  commit `07c6dbf`.
+
 - **M3 (libkrun half) done + unit-proven** — `jolt.libkrun.input` bound and
   pushed (`52e60af`): `krun_input_device_new`/`_new_from_fd`/`_destroy`, the
   config (80B) + event-provider (48B) vtables from `libkrun_input.h`, a
