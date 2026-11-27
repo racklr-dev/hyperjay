@@ -29,21 +29,23 @@
   {:desktop-x11
    {:id :desktop-x11
     :name "X11 desktop"
-    :warp "Alpine X11 (Xvfb + openbox + xterm + x11vnc) served over VNC"
+    :warp "Alpine X11 (Xorg modesetting + openbox + xterm) on the virtio-gpu scanout"
     :opts {:image "alpine:3.20"
            :packages (desktop/profile :x11)
            :memory-mib 1024
-           :cpus 2}
+           :cpus 2
+           :display true}
     :finish desktop/start-x11!}
 
    :desktop-wayland
    {:id :desktop-wayland
     :name "Wayland desktop"
-    :warp "Alpine Wayland (sway + foot + wayvnc) served over VNC"
+    :warp "Alpine Wayland (sway + wlroots DRM backend + foot) on the virtio-gpu scanout"
     :opts {:image "alpine:3.20"
            :packages (desktop/profile :wayland)
            :memory-mib 1024
-           :cpus 2}
+           :cpus 2
+           :display true}
     :finish desktop/start-wayland!}
 
    ;; Note: this card's :finish blocks in vm/x11-exec until the app closes, so

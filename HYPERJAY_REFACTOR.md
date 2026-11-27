@@ -2,6 +2,38 @@
 
 Status: accepted 2026-11-26. Path B only (no in-app RFB client, no vncviewer).
 
+## Progress (live)
+
+- **M0 done** — `jolt-framebuffer` extracted and pushed
+  (racklr-dev/jolt-framebuffer `5c50e7f`): canonical frame map, rgba decode,
+  PPM sink. No FFI, pure byte work.
+- **M1 done** — `jolt-libkrun` display path bound and pushed (`0bd36cd`):
+  display-backend vtable + `krun_gpu_device_new`, wired into `boot!` behind
+  `:display`. **Headless smoke proven**: alpine boots with `:display 640x480`,
+  drm-modeset as sandbox exits 0, the runner's PPM sink writes a real frame.
+- **M2.1 done** — `jolt-microvm` `:display` threading pushed (`35de935`):
+  start! resolves `{:width :height :virgl-flags :path}`, runner builds a
+  `ppm-sink` (atomic tmp+rename), `sshd-exec-command :dri?` chmods the DRM
+  devices, VM record carries `:display`.
+- **M2.2 X11 done + proven** — desktop.clj DRM profiles + root exec
+  (jolt-microvm `f501ff5`). E2E: alpine + xorg-server boots with `:display`,
+  `start-x11!` runs `Xorg :0` (modesetting) as root, openbox + xterm render,
+  and the host PPM sink holds a real 640x480 frame (54% non-black pixels:
+  openbox dark-gray, xterm white, black void). Root exec works (`whoami` ->
+  root) with the per-user ssh mux fixed; sandbox exec unaffected.
+  **Wayland (sway) pending** — same root-exec path, but sway's DRM backend
+  still needs a live test.
+
+  *Finding (supersedes the rootless note below):* rootless Xorg still wants
+  `/dev/tty0` for its VT, and a virtio-gpu scanout guest has no VT, so the
+  X server runs as **root** in the guest (sway's DRM backend too). Root is
+  reached by ssh key (not sudo — the rootfs chown-to-sandbox strips the sudo
+  setuid bit): `exec`/`exec!` gained `:root?`, and start! injects the
+  ephemeral key into `/root/.ssh/authorized_keys` (StrictModes=no is already
+  set on the guest sshd). Alpine's `xorg-server` is community-repo and bundles
+  the modesetting driver; `/usr/libexec/Xorg` bypasses the Xorg.wrap console
+  check. Xorg log must go to `/tmp/Xorg.0.log` (sandbox home is non-writable).
+
 ## Goal
 
 Cut the external `gvncviewer`/`vncviewer` hack and the in-guest `x11vnc`/`wayvnc`
