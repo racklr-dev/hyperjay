@@ -31,6 +31,12 @@
   future doing this thread's slow work, so shutdown! can wait for it."
   (r/atom {}))
 
+(defonce focus
+  "The warp id the bench is focused on: its display fills the content pane, its
+  details the inspector, and keyboard input routes to it. UI state, but kept
+  here so display.clj and ui.clj can both read it without a dependency cycle."
+  (r/atom nil))
+
 (defn- next-id [] (keyword (gensym "warp-")))
 
 (defn- err-str [e] (or (ex-message e) (str e)))
@@ -102,6 +108,7 @@
   [id]
   (when-let [v (get-in @warp [id :vm])]
     (try (vm/stop! v) (catch Exception _)))
+  (when (= id @focus) (reset! focus nil))
   (swap! warp dissoc id))
 
 (defn reboot!
@@ -169,6 +176,7 @@
     (doseq [s shuttles]
       (try (deref s 300000 ::timeout) (catch Exception _)))
     (reset! warp {})
+    (reset! focus nil)
     :shutdown))
 
 (defn attach!

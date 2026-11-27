@@ -110,6 +110,21 @@ M0–M2.3 below were executed against it.
   can't hold focus), forwarding key press/release as Linux keycode = GTK
   hardware keycode - 8.
 
+- **M4 chrome, slice 1 done** — the bench is reshaped into a UTM-like
+  three-pane product: **sidebar** (Running warps to select/focus, the saved-warp
+  Library, and the New card rack), **content** (the focused thread's framebuffer
+  in the embedded GL canvas), and **inspector** (the focused thread's details +
+  actions: attach/reboot/refresh/cut/re-weave/discard, plus a Save-to-library
+  form). New `src/jolt/hyperjay/library.clj` persists saved warps as EDN to
+  `$XDG_CONFIG_HOME/hyperjay/library.edn` (write-through, upsert by name).
+  `vm.clj` gained a `focus` atom (cleared on cut!/shutdown!); the bench is driven
+  by one selection instead of a per-thread breaker list, so keyboard input routes
+  to the focused thread via a single idempotent root-window key controller
+  (`display/ensure-keyboard!` replaces the per-canvas `attach-keyboard!`), and
+  `display/tick!` polls `loom/focus`'s PPM in place. Proven: namespace + branch
+  headless smoke (library round-trip, running→:gl-area, failed→no :gl-area,
+  cut-clears-focus) and an 8s GTK mount under Xvfb with no widget errors.
+
 ## Goal
 
 Cut the external `gvncviewer`/`vncviewer` hack and the in-guest `x11vnc`/`wayvnc`

@@ -31,7 +31,7 @@
     ;; immediately — close the bench there with (jolt.hyperjay.vm/shutdown!).
     (ui/run bench/bench
             :title "hyperjay — the loom"
-            :width 720
-            :height 520)
+            :width 1080
+            :height 680)
     (finally
       (loom/shutdown!))))

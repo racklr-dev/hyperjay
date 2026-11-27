@@ -144,40 +144,46 @@ void main(){ frag = texture(u_tex, v_uv); }")
                                 :drawn (atom 0)
                                 :sig (atom nil)}))))
 
-(defn attach-keyboard!
-  "Attach a GTK4 EventControllerKey to the toplevel root window — GtkGLArea
-  can't hold keyboard focus — and forward key press/release to warp-id's VM
-  virtual keyboard. Linux keycode = GTK hardware keycode - 8 (X keycodes sit
-  eight above the evdev keycodes). Called from the GLArea's realize handler,
-  where the root window exists."
-  [area id]
-  (let [root (gtk/gtk-widget-get-root area)]
-    (when-not (ffi/null? root)
-      (let [ctl (gtk/gtk-event-controller-key-new)
-            kp (ffi/foreign-callable
-                 (fn [_ _keyval kc _state _]
-                   (let [code (- (long kc) 8)]
-                     (when (pos? code) (loom/send-key! id code true)))
-                   0)
-                 [:pointer :uint :uint :uint :pointer] :int :collect-safe)
-            kr (ffi/foreign-callable
-                 (fn [_ _keyval kc _state _]
-                   (let [code (- (long kc) 8)]
-                     (when (pos? code) (loom/send-key! id code false))))
-                 [:pointer :uint :uint :uint :pointer] :void :collect-safe)]
-        (gtk/gtk-widget-add-controller root ctl)
-        (w/retain-callable! kp)
-        (w/retain-callable! kr)
-        (g/g-signal-connect-data ctl "key-pressed" kp ffi/null ffi/null g/CONNECT-DEFAULT)
-        (g/g-signal-connect-data ctl "key-released" kr ffi/null ffi/null g/CONNECT-DEFAULT)))))
+(defonce ^:private keyboard-attached? (atom false))
+
+(defn ensure-keyboard!
+  "Attach ONE GTK4 EventControllerKey to the toplevel root window — GtkGLArea
+  can't hold keyboard focus — and forward key press/release to the focused warp
+  thread, read at event time so a selection switch redirects input without
+  re-attaching. Linux keycode = GTK hardware keycode - 8 (X keycodes sit eight
+  above the evdev keycodes). Idempotent: the controller outlives the GLArea it
+  was first attached from, so re-mounts across selection changes don't stack
+  controllers. Called from the GLArea's realize handler."
+  [area]
+  (when-not @keyboard-attached?
+    (let [root (gtk/gtk-widget-get-root area)]
+      (when-not (ffi/null? root)
+        (let [ctl (gtk/gtk-event-controller-key-new)
+              kp (ffi/foreign-callable
+                   (fn [_ _keyval kc _state _]
+                     (let [code (- (long kc) 8)]
+                       (when (pos? code) (loom/send-key! @loom/focus code true)))
+                     0)
+                   [:pointer :uint :uint :uint :pointer] :int :collect-safe)
+              kr (ffi/foreign-callable
+                   (fn [_ _keyval kc _state _]
+                     (let [code (- (long kc) 8)]
+                       (when (pos? code) (loom/send-key! @loom/focus code false))))
+                   [:pointer :uint :uint :uint :pointer] :void :collect-safe)]
+          (gtk/gtk-widget-add-controller root ctl)
+          (w/retain-callable! kp)
+          (w/retain-callable! kr)
+          (g/g-signal-connect-data ctl "key-pressed" kp ffi/null ffi/null g/CONNECT-DEFAULT)
+          (g/g-signal-connect-data ctl "key-released" kr ffi/null ffi/null g/CONNECT-DEFAULT)
+          (reset! keyboard-attached? true))))))
 
 (defn tick!
-  "Poll the thread's PPM; when it changes, decode it and queue a re-render.
-  Runs on the GTK frame clock — cheap until the file actually changes."
-  [area warp-id]
+  "Poll the focused thread's PPM; when it changes, decode it and queue a
+  re-render. Runs on the GTK frame clock — cheap until the file changes."
+  [area]
   (let [st (get @states area)]
     (when st
-      (when-let [path (get-in @loom/warp [warp-id :display :display-path])]
+      (when-let [path (get-in @loom/warp [@loom/focus :display :display-path])]
         (let [sig (frame-signature path)]
           (when (and sig (not= sig @(:sig st)))
             (reset! (:sig st) sig)
