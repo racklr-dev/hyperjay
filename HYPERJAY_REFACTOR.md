@@ -278,8 +278,11 @@ krun_input_event_provider (48 bytes): u64 features@0, ptr userdata@8,
 - Snapshot/stamp UI on top of the existing `vm/save-snapshot!`/
   `list-snapshots` (the VM machinery is already there).
 - glimmer-cui remains the shelf candidate for a chrome swap once the canvas
-  exists (its license needs checking before any port; glimmer-bui stays ruled
-  out — GPL).
+  exists. License checked 2026-11-27: CUI (MIT) and cui-jolt (MIT) are
+  permissive, and the sibling glimmer/glimmer-gtk/glimmer-gl are MIT, but
+  glimmer-cui itself ships NO license (GitHub `license: null`, no LICENSE
+  file) — all-rights-reserved until one is added. Add an MIT LICENSE (matching
+  glimmer) before any port; glimmer-bui stays ruled out — GPL.
 
 ## Order of attack
 
