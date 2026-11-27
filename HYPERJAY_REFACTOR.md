@@ -15,14 +15,14 @@ Status: accepted 2026-11-26. Path B only (no in-app RFB client, no vncviewer).
   start! resolves `{:width :height :virgl-flags :path}`, runner builds a
   `ppm-sink` (atomic tmp+rename), `sshd-exec-command :dri?` chmods the DRM
   devices, VM record carries `:display`.
-- **M2.2 X11 done + proven** — desktop.clj DRM profiles + root exec
-  (jolt-microvm `f501ff5`). E2E: alpine + xorg-server boots with `:display`,
-  `start-x11!` runs `Xorg :0` (modesetting) as root, openbox + xterm render,
-  and the host PPM sink holds a real 640x480 frame (54% non-black pixels:
-  openbox dark-gray, xterm white, black void). Root exec works (`whoami` ->
-  root) with the per-user ssh mux fixed; sandbox exec unaffected.
-  **Wayland (sway) pending** — same root-exec path, but sway's DRM backend
-  still needs a live test.
+- **M2.2 done + proven (X11 and Wayland)** — desktop.clj DRM profiles + root
+  exec. E2E both: alpine boots with `:display`, `start-x11!` runs `Xorg :0`
+  (modesetting) as root and the PPM sink holds a real 640x480 frame (54%
+  non-black: openbox dark-gray, xterm white, black void); `start-wayland!` runs
+  sway (DRM backend) via **seatd** (wlroots needs a seat, no logind in the
+  guest) + `WLR_RENDERER=pixman` (no GL/EGL driver for virtio-gpu) — foot
+  renders, 100% non-black frame. Root exec works (`whoami` -> root) with the
+  per-user ssh mux fixed; sandbox exec unaffected.
 
   *Finding (supersedes the rootless note below):* rootless Xorg still wants
   `/dev/tty0` for its VT, and a virtio-gpu scanout guest has no VT, so the
