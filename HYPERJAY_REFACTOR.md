@@ -69,6 +69,24 @@ M0–M2.3 below were executed against it.
   larger resolution. Suspect `:virgl-flags 1` (USE_EGL) at 1280x720; try
   `:virgl-flags 0` (the plan's "2D-only MVP" value) as a fallback.
 
+- **M3 (libkrun half) done + unit-proven** — `jolt.libkrun.input` bound and
+  pushed (`52e60af`): `krun_input_device_new`/`_new_from_fd`/`_destroy`, the
+  config (80B) + event-provider (48B) vtables from `libkrun_input.h`, a
+  BUS_VIRTUAL keyboard (name `libkrun Virtual Keyboard`, vendor `RH`, product
+  1) whose provider owns an eventfd (EFD_SEMAPHORE|EFD_NONBLOCK) + a
+  thread-safe FIFO — the reference gui_vm pollable_channel protocol.
+  `boot!` wires it behind `:keyboard?`; `send-key!`/`send-event!` enqueue from
+  any host thread. Unit-proven against the real libkrun.so.2 (struct sizes
+  80/48/8/8, device creation, key+syn round-trip, name/ids/caps queries) —
+  `test/jolt/libkrun_input_test.clj`.
+
+  *Open (VM e2e):* the device builds and attaches, but the guest still lists
+  only 2 virtio devices (fs+console) — no `/dev/input`. The libkrun build does
+  carry `--features input` (rebuild3.log), so this is the FFI attach path for
+  `InputDevice` (device_builders.rs `AttachDevice::attach`, `ffier(skip)`),
+  not the vtable ABI; next step is to pin that down or try the passthrough
+  (`krun_input_device_new_from_fd`) path as a cross-check.
+
 ## Goal
 
 Cut the external `gvncviewer`/`vncviewer` hack and the in-guest `x11vnc`/`wayvnc`
