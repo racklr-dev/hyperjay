@@ -76,7 +76,7 @@ M0–M2.3 below were executed against it.
   (black bars instead of stretch-on-resize). Verified against six geometries;
   commit `07c6dbf`.
 
-- **M3 (libkrun half) done + unit-proven** — `jolt.libkrun.input` bound and
+- **M3 done** — `jolt.libkrun.input` bound and
   pushed (`52e60af`): `krun_input_device_new`/`_new_from_fd`/`_destroy`, the
   config (80B) + event-provider (48B) vtables from `libkrun_input.h`, a
   BUS_VIRTUAL keyboard (name `libkrun Virtual Keyboard`, vendor `RH`, product
@@ -97,6 +97,18 @@ M0–M2.3 below were executed against it.
   was stale — it predates the 7.3.6 kernel (6.12.91 lacks CONFIG_VIRTIO_INPUT).
   evdev reads must be multiples of 24 (`struct input_event`), not the 8-byte
   virtio-input event size.
+
+  *jolt-microvm threading + bench forwarding (2026-11-27):* `jolt-microvm`
+  `07eadaa` threads `:keyboard` through `start!`/runner: the host-side
+  `send-key!`/`send-event!` append one `<type> <code> <value>` line per event
+  to `/dev/shm/jolt-vm-<uuid>.keys`, and the runner tails the file on a thread
+  and forwards each line to `jolt.libkrun.input/send-event!` (the poller stops
+  when `vmm_run` returns). Proven end-to-end through `start!`: the guest
+  enumerates the keyboard and reads back injected KEY_A/KEY_S with correct
+  EV_SYN. hyperjay `65b64c8` boots the desktop cards with `:keyboard` and the
+  canvas attaches a GTK4 EventControllerKey to its root window (GtkGLArea
+  can't hold focus), forwarding key press/release as Linux keycode = GTK
+  hardware keycode - 8.
 
 ## Goal
 
