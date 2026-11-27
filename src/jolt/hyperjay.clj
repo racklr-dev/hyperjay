@@ -26,7 +26,7 @@
   (gtkx/silence-a11y!)   ; before GTK initialises
   (try
     ;; ui/run blocks until the bench window closes under `jolt run`, then
-    ;; returns; shutdown! then cuts every warp thread (viewers + microVMs).
+    ;; returns; shutdown! then cuts every warp thread (live microVMs).
     ;; Under an nREPL dev session ui/run hops to the main thread and returns
     ;; immediately — close the bench there with (jolt.hyperjay.vm/shutdown!).
     (ui/run bench/bench

@@ -33,6 +33,34 @@ Status: accepted 2026-11-26. Path B only (no in-app RFB client, no vncviewer).
   set on the guest sshd). Alpine's `xorg-server` is community-repo and bundles
   the modesetting driver; `/usr/libexec/Xorg` bypasses the Xorg.wrap console
   check. Xorg log must go to `/tmp/Xorg.0.log` (sandbox home is non-writable).
+- **M2.3 done + proven** — the VNC hack is gone and the bench draws the guest
+  framebuffer natively. `jolt-framebuffer` gained `ppm->rgba` (`82c9e46`) so the
+  bench can read the runner's P6 sink back to rgba; `jolt-microvm` bumped to it
+  (`24f6007`). hyperjay: `vm.clj` dropped viewer-bin / view! / kill-viewer! /
+  vnc-arg / auto-view? and stores the desktop frame source as `:display`
+  (`{:ip :display-path :width :height}`) — the warp entry no longer carries
+  `:url`/`:viewer`. New `src/jolt/hyperjay/display.clj` uploads the PPM to a GL
+  texture and draws one textured quad; `ui.clj` replaces the VNC URL row + View
+  button with a `:gl-area` canvas per running display thread. deps.edn adds
+  `jolt-lang/glimmer-gl` (`8e74cdf`) for the `:gl-area` widget + GL bindings.
+
+  *Proof (this host is a 640x480 Xorg + NVIDIA box):* the GtkGLArea context here
+  is **OpenGL ES 3.2**, not desktop GL — `:version [3 3]` fails to create a
+  context (`Unable to create a GL context`), so the canvas requests `[3 2]` and
+  the shaders auto-pick `#version 300 es` vs `330 core` from `GL_VERSION`. A GL
+  smoke test rendered a two-tone PPM and read the backbuffer back: top red /
+  bottom blue, orientation correct. A seeded-bench screenshot found **59,513
+  magenta pixels on screen** — the canvas is visibly live (the per-frame
+  `eglExportDMABUFImage failed: 0x3009` GDK warning is cosmetic on this box;
+  the backbuffer and on-screen pixels are both correct). Real-VM e2e: weaving
+  `:desktop-x11` reached `:state :running` with `:display {:ip … :display-path
+  /dev/shm/jolt-vm-*.ppm :width 1280 :height 720}` and a 2,764,816-byte PPM.
+
+  *Follow-up (jolt-microvm, not the bench):* in that e2e the **default
+  1280x720** scanout frame was black, while M2.2's explicit **640x480** was
+  54% non-black — the desktop's rendering didn't reach the host sink at the
+  larger resolution. Suspect `:virgl-flags 1` (USE_EGL) at 1280x720; try
+  `:virgl-flags 0` (the plan's "2D-only MVP" value) as a fallback.
 
 ## Goal
 

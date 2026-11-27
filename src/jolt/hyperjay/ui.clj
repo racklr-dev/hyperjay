@@ -1,15 +1,18 @@
 ;; The bench — hyperjay's face.
 ;;
 ;; Hiccup views that read the warp atom and render the circuit box: one breaker
-;; row per warp thread. Picking a card weaves it; each breaker lets you view the
-;; desktop (VNC), copy its URL, refresh, reboot, cut, or discard a failed thread.
+;; row per warp thread. Picking a card weaves it; each breaker shows the running
+;; desktop's framebuffer natively in an embedded canvas, and lets you attach,
+;; refresh, reboot, cut, or discard a failed thread.
 ;;
 ;; Drawn by glimmer-gtk:  https://github.com/jolt-lang/glimmer-gtk
+;; GL canvas by glimmer-gl: https://github.com/jolt-lang/glimmer-gl
 ;; Reactive atoms:        https://github.com/jolt-lang/glimmer
 (ns jolt.hyperjay.ui
   (:require [jolt.hyperjay.cards :as cards]
             [jolt.hyperjay.vm :as loom]
-            [jolt.hyperjay.gtkx :as gtkx]))   ; registers :selectable-label + clipboard
+            [jolt.hyperjay.gtkx :as gtkx]        ; registers :selectable-label + clipboard
+            [jolt.hyperjay.display :as display])) ; registers :gl-area via glimmer-gl
 
 (defn- state-color [state]
   (case state
@@ -19,7 +22,7 @@
     "#8e939d"))
 
 (defn card-picker
-  "The card rack: one button per punched card, plus the auto-view toggle."
+  "The card rack: one button per punched card."
   []
   [:frame {:label "Cards"}
    [:vbox {:spacing 4 :margin 6}
@@ -29,12 +32,23 @@
                   :tooltip (:warp c)
                   :hexpand true
                   :halign :fill
-                  :on-click #(loom/weave! id)}]))
-    [:separator]
-    [:checkbutton {:label "Auto-open VNC viewer"
-                   :tooltip "Pop the desktop's VNC viewer when it is ready"
-                   :active @loom/auto-view?
-                   :on-toggled #(swap! loom/auto-view? not)}]]])
+                  :on-click #(loom/weave! id)}]))]])
+
+(defn display-pane
+  "The embedded canvas for a running display thread: a GL area that uploads the
+  runner's PPM frame to a texture and draws it. The handlers close over the
+  stable warp id; they wire once at mount."
+  [id {:keys [display-path width height]}]
+  [:frame {:label "Display"}
+   [:gl-area {:version [3 2]
+              :depth-buffer false
+              :hexpand true
+              :vexpand true
+              :width-request (or width 640)
+              :height-request (or height 480)
+              :on-realize (fn [area] (display/realize! area))
+              :on-render  (fn [area] (display/render! area))
+              :on-tick    (fn [area] (display/tick! area id))}]])
 
 (defn breaker-row
   "One warp thread in the circuit box."
@@ -43,13 +57,8 @@
    [:vbox {:spacing 4 :margin 6}
     [:label {:markup [:span {:foreground (state-color (:state e))}
                       (name (:state e))]}]
-    (when (:url e)
-      [:hbox {:spacing 4}
-       [:selectable-label {:label (str "VNC " (:url e)) :wrap true :xalign 0.0}]
-       [:button {:label "Copy" :tooltip "Copy the VNC URL to the clipboard"
-                 :on-click #(gtkx/copy! (get-in @loom/warp [id :url]))}]
-       [:button {:label "View" :tooltip "Open the desktop in a VNC viewer"
-                 :on-click #(loom/view! id)}]])
+    (when (and (= :running (:state e)) (:display e))
+      [display-pane id (:display e)])
     (when (:error e)
       [:label {:label (:error e) :wrap true :max-width-chars 48}])
     [:hbox {:spacing 4}

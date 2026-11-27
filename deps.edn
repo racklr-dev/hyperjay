@@ -10,13 +10,18 @@
 
  :deps {racklr-dev/jolt-microvm
         {:git/url "https://github.com/racklr-dev/jolt-microvm"
-         :git/sha "4547630ef6ef5eebd79ae07c915d943f3ec89dad"}
+         :git/sha "24f6007bec4fef6e8455b3a95e2b170307c43bec"}
         jolt-lang/glimmer
         {:git/url "https://github.com/jolt-lang/glimmer"
          :git/sha "a61f5ef71f56033c7a6765f400a5978ee76b7b6b"}
         jolt-lang/glimmer-gtk
         {:git/url "https://github.com/jolt-lang/glimmer-gtk"
-         :git/sha "3d46afcd1f0c50d26483dd8e20f76cb3433602a6"}}
+         :git/sha "3d46afcd1f0c50d26483dd8e20f76cb3433602a6"}
+        ;; glimmer-gl supplies the :gl-area widget (GtkGLArea) and the native GL
+        ;; bindings the embedded canvas uploads the guest framebuffer into.
+        jolt-lang/glimmer-gl
+        {:git/url "https://github.com/jolt-lang/glimmer-gl"
+         :git/sha "8e74cdf6da29e9f2a9f093c07cbd45a307b5101c"}}
 
  :tasks {gui        "jolt run -m jolt.hyperjay"
          x11        "jolt run cards/desktop-x11.clj"
