@@ -2,6 +2,13 @@
 
 Status: accepted 2026-11-26. Path B only (no in-app RFB client, no vncviewer).
 
+Decision record (jm, 2026-11-27): "Yes, Path B is the right one. glimmer-gl good,
+yes let's spin that part of jolt-libretro into a tiny purpose built library in
+racklr-dev/jolt-*, we can cut the vncviewer hack then, yes good clean. we'll go
+straight to path b, please add this plan to HYPERJAY_REFACTOR.md, and let's begin."
+— Path B confirmed as the accepted direction; the plan below records it, and
+M0–M2.3 below were executed against it.
+
 ## Progress (live)
 
 - **M0 done** — `jolt-framebuffer` extracted and pushed
