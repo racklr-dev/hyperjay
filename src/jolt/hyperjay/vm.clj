@@ -62,25 +62,23 @@
     (when (= v (get-in m [id :vm])) v)))
 
 ;; -- weave / cut --------------------------------------------------------------
-(defn weave!
-  "Weave a card into the warp: boot a microVM on a shuttle thread and move the
-  thread through :queued/:booting to :running (or :failed). Returns the warp
-  id immediately; poll @warp for progress."
-  [card-id]
-  (let [card (cards/card-by-id card-id)]
-    (when-not card
-      (throw (ex-info "unknown card" {:card-id card-id
-                                      :known (cards/card-ids)})))
-    (let [id (next-id)]
-      (swap! warp assoc id {:id id
-                            :card-id card-id
-                            :name (:name card)
-                            :state :queued
-                            :vm nil
-                            :display nil
-                            :shuttle nil
-                            :error nil})
-      (set-state! id :shuttle
+(defn weave-card!
+  "Weave a card map into the warp: boot a microVM on a shuttle thread and move
+  the thread through :queued/:booting to :running (or :failed). Returns the
+  warp id immediately; poll @warp for progress."
+  [card]
+  (let [id (next-id)]
+    (swap! warp assoc id {:id id
+                          :card card
+                          :card-id (:id card)
+                          :name (:name card)
+                          :recipe (:recipe card)
+                          :state :queued
+                          :vm nil
+                          :display nil
+                          :shuttle nil
+                          :error nil})
+    (set-state! id :shuttle
         (future
           (try
             (set-state! id :state :booting)
@@ -101,7 +99,15 @@
                 (set-state! id :state :failed)
                 (set-state! id :error (err-str e)))))
             nil))
-      id)))
+    id))
+
+(defn weave!
+  "Weave a static card (by id) into the warp. See weave-card!."
+  [card-id]
+  (if-let [card (cards/card-by-id card-id)]
+    (weave-card! card)
+    (throw (ex-info "unknown card" {:card-id card-id
+                                    :known (cards/card-ids)}))))
 
 (defn cut!
   "Cut a warp thread: stop the VM if it is alive, then drop its entry."
@@ -116,7 +122,7 @@
   the desktop (the TAP lease — and hence the guest IP — changes on every boot)."
   [id]
   (when-let [entry (get @warp id)]
-    (let [card (cards/card-by-id (:card-id entry))]
+    (let [card (:card entry)]
       ;; reflect the reboot in the UI immediately; the slow stop+start happens
       ;; on the shuttle thread.
       (set-state! id :state :booting)
@@ -142,7 +148,7 @@
   it, and re-derive the frame source. Fixes a dead or confused desktop in place."
   [id]
   (when-let [entry (get @warp id)]
-    (let [card (cards/card-by-id (:card-id entry))
+    (let [card (:card entry)
           v (:vm entry)]
       (set-state! id :display nil)
       (set-state! id :state :booting)

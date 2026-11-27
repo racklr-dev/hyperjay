@@ -12,6 +12,7 @@
   (:require [jolt.hyperjay.cards :as cards]
             [jolt.hyperjay.vm :as loom]
             [jolt.hyperjay.library :as lib]
+            [jolt.hyperjay.wizard :as wizard]
             [jolt.hyperjay.gtkx :as gtkx]        ; registers :selectable-label + clipboard
             [jolt.hyperjay.display :as display]  ; registers :gl-area via glimmer-gl
             [glimmer.ratom :as r]))
@@ -30,17 +31,17 @@
   (let [focused? (= id @loom/focus)]
     [:button {:label (str (if focused? "▸ " "  ") (:name e) " — " (name (:state e)))
               :hexpand true :halign :fill
-              :tooltip (:warp (cards/card-by-id (:card-id e)))
+              :tooltip (:warp (:card e))
               :on-click #(reset! loom/focus id)}]))
 
 (defn- library-row
   "One saved warp in the library: weave it, or forget it."
-  [{:keys [name card-id]}]
+  [{:keys [name recipe]}]
   [:hbox {:spacing 4}
    [:button {:label name
              :hexpand true :halign :fill
-             :tooltip (str "weave " card-id)
-             :on-click #(let [id (loom/weave! card-id)]
+             :tooltip (str "weave " recipe)
+             :on-click #(let [id (loom/weave-card! (cards/recipe->card recipe))]
                           (reset! loom/focus id))}]
    [:button {:label "✕"
              :tooltip "forget this saved warp"
@@ -77,7 +78,9 @@
    [:frame {:label "New"}
     [:vbox {:spacing 2 :margin 4}
      (for [id (cards/card-ids)]
-       [new-card-button id])]]])
+       [new-card-button id])]]
+   [:frame {:label "New from registry"}
+    [wizard/wizard-pane]]])
 
 ;; --- content -----------------------------------------------------------------
 (defn- empty-content []
@@ -131,7 +134,7 @@
 ;; --- inspector ---------------------------------------------------------------
 (defonce save-name (r/atom ""))
 
-(defn- action-buttons [{:keys [id state card-id]}]
+(defn- action-buttons [{:keys [id state card]}]
   [:vbox {:spacing 4}
    (when (= :running state)
      [:button {:label "Attach console" :hexpand true :on-click #(loom/attach! id)}])
@@ -143,12 +146,12 @@
      [:button {:label "Cut" :hexpand true :on-click #(loom/cut! id)}])
    (when (= :failed state)
      [:button {:label "Re-weave" :hexpand true
-               :on-click #(let [nid (loom/weave! card-id)]
+               :on-click #(let [nid (loom/weave-card! card)]
                             (reset! loom/focus nid))}])
    (when (= :failed state)
      [:button {:label "Discard" :hexpand true :on-click #(loom/cut! id)}])])
 
-(defn- save-form [{:keys [name card-id]}]
+(defn- save-form [{:keys [name recipe]}]
   [:vbox {:spacing 4}
    [:label {:markup [:b "Save to library"]}]
    [:entry {:placeholder (str "name (default: " name ")")
@@ -157,7 +160,7 @@
    [:button {:label "Save"
              :hexpand true
              :on-click #(let [n (or (seq @save-name) name)]
-                          (lib/save! n card-id)
+                          (lib/save! n recipe)
                           (reset! save-name ""))}]])
 
 (defn inspector
