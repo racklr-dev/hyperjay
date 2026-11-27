@@ -34,7 +34,8 @@
            :packages (desktop/profile :x11)
            :memory-mib 1024
            :cpus 2
-           :display true}
+           :display true
+           :keyboard true}
     :finish desktop/start-x11!}
 
    :desktop-wayland
@@ -45,7 +46,8 @@
            :packages (desktop/profile :wayland)
            :memory-mib 1024
            :cpus 2
-           :display true}
+           :display true
+           :keyboard true}
     :finish desktop/start-wayland!}
 
    ;; Note: this card's :finish blocks in vm/x11-exec until the app closes, so

@@ -20,6 +20,8 @@
             [jolt.hyperjay.vm :as loom]
             [glimmer-gl.gtk :as gtk]
             [glimmer-gl.gl :as gl]
+            [glimmer-gtk.ffi :as g]
+            [glimmer-gtk.widget :as w]
             [jolt.ffi :as ffi]
             [clojure.string :as str]))
 
@@ -141,6 +143,33 @@ void main(){ frag = texture(u_tex, v_uv); }")
                                 :gen (atom 0)
                                 :drawn (atom 0)
                                 :sig (atom nil)}))))
+
+(defn attach-keyboard!
+  "Attach a GTK4 EventControllerKey to the toplevel root window — GtkGLArea
+  can't hold keyboard focus — and forward key press/release to warp-id's VM
+  virtual keyboard. Linux keycode = GTK hardware keycode - 8 (X keycodes sit
+  eight above the evdev keycodes). Called from the GLArea's realize handler,
+  where the root window exists."
+  [area id]
+  (let [root (gtk/gtk-widget-get-root area)]
+    (when-not (ffi/null? root)
+      (let [ctl (gtk/gtk-event-controller-key-new)
+            kp (ffi/foreign-callable
+                 (fn [_ _keyval kc _state _]
+                   (let [code (- (long kc) 8)]
+                     (when (pos? code) (loom/send-key! id code true)))
+                   0)
+                 [:pointer :uint :uint :uint :pointer] :int :collect-safe)
+            kr (ffi/foreign-callable
+                 (fn [_ _keyval kc _state _]
+                   (let [code (- (long kc) 8)]
+                     (when (pos? code) (loom/send-key! id code false))))
+                 [:pointer :uint :uint :uint :pointer] :void :collect-safe)]
+        (gtk/gtk-widget-add-controller root ctl)
+        (w/retain-callable! kp)
+        (w/retain-callable! kr)
+        (g/g-signal-connect-data ctl "key-pressed" kp ffi/null ffi/null g/CONNECT-DEFAULT)
+        (g/g-signal-connect-data ctl "key-released" kr ffi/null ffi/null g/CONNECT-DEFAULT)))))
 
 (defn tick!
   "Poll the thread's PPM; when it changes, decode it and queue a re-render.

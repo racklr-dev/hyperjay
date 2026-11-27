@@ -177,6 +177,13 @@
   (when-let [v (get-in @warp [id :vm])]
     (vm/attach! v)))
 
+(defn send-key!
+  "Forward a Linux key press/release to a warp thread's virtual keyboard. The
+  VM must have been started with :keyboard (the desktop cards set it)."
+  [id code pressed?]
+  (when-let [v (get-in @warp [id :vm])]
+    (vm/send-key! v code pressed?)))
+
 (defn snapshot!
   "Save a named snapshot of a warp thread."
   [id name]

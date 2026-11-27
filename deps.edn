@@ -10,7 +10,7 @@
 
  :deps {racklr-dev/jolt-microvm
         {:git/url "https://github.com/racklr-dev/jolt-microvm"
-         :git/sha "24f6007bec4fef6e8455b3a95e2b170307c43bec"}
+         :git/sha "07eadaab4ae33eb188760741a3162f8ef6d6af57"}
         jolt-lang/glimmer
         {:git/url "https://github.com/jolt-lang/glimmer"
          :git/sha "a61f5ef71f56033c7a6765f400a5978ee76b7b6b"}

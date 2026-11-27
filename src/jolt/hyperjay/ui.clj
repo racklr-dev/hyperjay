@@ -46,7 +46,7 @@
               :vexpand true
               :width-request (or width 640)
               :height-request (or height 480)
-              :on-realize (fn [area] (display/realize! area))
+              :on-realize (fn [area] (display/realize! area) (display/attach-keyboard! area id))
               :on-render  (fn [area] (display/render! area))
               :on-tick    (fn [area] (display/tick! area id))}]])
 
