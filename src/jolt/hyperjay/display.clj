@@ -157,24 +157,47 @@ void main(){ frag = texture(u_tex, v_uv); }")
               (swap! (:gen st) inc)
               (gtk/queue-render area))))))))
 
+(defn fit-viewport
+  "Largest centered viewport that holds a fw x fh frame at its native aspect
+  inside an aw x ah widget allocation. Returns [x y vw vh]; pillarboxes when
+  the window is wider than the frame, letterboxes when taller. nil when any
+  dimension is non-positive. Ported from jolt-libretro's GL window sink."
+  [fw fh aw ah]
+  (when (and (pos? fw) (pos? fh) (pos? aw) (pos? ah))
+    (let [ar (/ (double fw) (double fh))
+          win-ar (/ (double aw) (double ah))]
+      (if (>= win-ar ar)
+        (let [vh ah
+              vw (max 1 (Math/round (* ah ar)))]
+          [(quot (- aw vw) 2) 0 vw vh])
+        (let [vw aw
+              vh (max 1 (Math/round (/ aw ar)))]
+          [0 (quot (- ah vh) 2) vw vh])))))
+
 (defn render!
-  "Upload the latest decoded frame (when new) and draw the textured quad.
-  Context is current (GtkGLArea render)."
+  "Upload the latest decoded frame (when new) and draw the textured quad into
+  the largest centered viewport that preserves the frame's aspect; the rest of
+  the widget stays black (letterbox/pillarbox). Context is current (GtkGLArea
+  render)."
   [area]
   (let [st (get @states area)]
     (when st
       (let [w (max (long (gtk/widget-width area)) 1)
-            h (max (long (gtk/widget-height area)) 1)]
+            h (max (long (gtk/widget-height area)) 1)
+            frame @(:frame st)]
         (gl/gl-viewport 0 0 w h)
         (gl/gl-clear-color 0.0 0.0 0.0 1.0)
         (gl/gl-clear gl/GL-COLOR-BUFFER-BIT)
-        (when-let [frame @(:frame st)]
+        (when frame
           (when (not= @(:drawn st) @(:gen st))
             (upload! st frame)
             (reset! (:drawn st) @(:gen st)))
-          (gl/gl-active-texture gl/GL-TEXTURE0)
-          (gl/gl-bind-texture gl/GL-TEXTURE-2D (:tex st))
-          (gl/gl-use-program (:prog st))
-          (gl/gl-bind-vertex-array (:vao st))
-          (gl/gl-draw-arrays gl/GL-TRIANGLE-STRIP 0 4)
-          (gl/gl-bind-vertex-array 0))))))
+          (let [[x y vw vh] (or (fit-viewport (:width frame) (:height frame) w h)
+                                [0 0 w h])]
+            (gl/gl-viewport x y vw vh)
+            (gl/gl-active-texture gl/GL-TEXTURE0)
+            (gl/gl-bind-texture gl/GL-TEXTURE-2D (:tex st))
+            (gl/gl-use-program (:prog st))
+            (gl/gl-bind-vertex-array (:vao st))
+            (gl/gl-draw-arrays gl/GL-TRIANGLE-STRIP 0 4)
+            (gl/gl-bind-vertex-array 0)))))))
