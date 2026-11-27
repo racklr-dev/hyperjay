@@ -198,14 +198,76 @@
   (when-let [v (get-in @warp [id :vm])]
     (vm/send-key! v code pressed?)))
 
-(defn snapshot!
-  "Save a named snapshot of a warp thread."
-  [id name]
-  (when-let [v (get-in @warp [id :vm])]
-    (vm/save-snapshot! v name)))
+(defn- stamp-name []
+  (str "stamp-" (.format (java.text.SimpleDateFormat. "yyyyMMdd-HHmmss")
+                         (java.util.Date.))))
 
-(defn snapshots
-  "List a warp thread's snapshots."
+(defn stamp!
+  "Stamp a warp thread: save a timestamped snapshot, no name to remember. Runs
+  the rootfs copy inline, so call it off the GTK main thread. Returns the name."
   [id]
   (when-let [v (get-in @warp [id :vm])]
-    (vm/list-snapshots v)))
+    (let [base (stamp-name)
+          name (loop [n 0]
+                 (let [candidate (if (zero? n) base (str base "-" n))]
+                   (if (some #{candidate} (vm/list-snapshots v))
+                     (recur (inc n))
+                     candidate)))]
+      (vm/save-snapshot! v name)
+      name)))
+
+(defn snapshot!
+  "Save a named snapshot of a warp thread. Runs the rootfs copy inline, so call
+  it off the GTK main thread. Returns the name."
+  [id name]
+  (when-let [v (get-in @warp [id :vm])]
+    (vm/save-snapshot! v name)
+    name))
+
+(defn snapshots
+  "List a warp thread's snapshots (sorted)."
+  [id]
+  (if-let [v (get-in @warp [id :vm])]
+    (vm/list-snapshots v)
+    []))
+
+(defn delete-snapshot!
+  "Delete a warp thread's snapshot. Runs the tree delete inline, so call it off
+  the GTK main thread. Returns the name."
+  [id name]
+  (when-let [v (get-in @warp [id :vm])]
+    (vm/delete-snapshot! v name)
+    name))
+
+(defn restore-snapshot!
+  "Restore a warp thread from a snapshot: stop the VM, restore the snapshot over
+  the cached base, and boot a fresh VM from it — the snapshot takes effect on
+  this next boot. Slow, so it runs on the shuttle thread; the warp moves through
+  :booting back to :running. Returns :restoring."
+  [id name]
+  (when-let [entry (get @warp id)]
+    (let [v (:vm entry)
+          card (:card entry)]
+      ;; fail fast before stopping the VM — a missing snapshot must not cut a
+      ;; healthy warp
+      (when-not (some #{name} (vm/list-snapshots v))
+        (throw (ex-info "snapshot does not exist" {:name name})))
+      (set-state! id :state :booting)
+      (set-state! id :display nil)
+      (set-state! id :shuttle
+        (future
+          (try
+            (vm/stop! v)
+            (vm/restore-snapshot! v name)
+            (let [new-vm (vm/start! (:opts v))]
+              (if (publish-vm! id new-vm)
+                (let [disp (when-let [finish (:finish card)] (finish new-vm))]
+                  (set-state! id :display disp)
+                  (set-state! id :state :running))
+                (vm/stop! new-vm)))
+            (catch Exception e
+              (when (get @warp id)
+                (set-state! id :state :failed)
+                (set-state! id :error (err-str e)))))
+          nil))
+      :restoring)))

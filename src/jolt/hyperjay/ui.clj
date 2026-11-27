@@ -134,6 +134,16 @@
 ;; --- inspector ---------------------------------------------------------------
 (defonce save-name (r/atom ""))
 
+;; Snapshot state. snap-version is a counter the snapshots section derefs so it
+;; re-renders (and re-lists the directory) after a snapshot action; snap-msg is
+;; a [warp-id message] pair, scoped so a stale message never shows under another
+;; warp. Snapshot saves/deletes copy whole rootfs trees, so they run on a future
+;; off the GTK main thread; glimmer-gtk marshals the resulting ratom writes back
+;; onto the main loop.
+(defonce snap-name (r/atom ""))
+(defonce snap-version (r/atom 0))
+(defonce snap-msg (r/atom nil))
+
 (defn- action-buttons [{:keys [id state card]}]
   [:vbox {:spacing 4}
    (when (= :running state)
@@ -163,6 +173,59 @@
                           (lib/save! n recipe)
                           (reset! save-name ""))}]])
 
+(defn- snapshots-section [{:keys [id state]}]
+  (when (= :running state)
+    @snap-version ; subscribe: re-render when a snapshot action finishes
+    (let [snaps (loom/snapshots id)]
+      [:vbox {:spacing 4}
+       [:separator]
+       [:label {:markup [:b "Snapshots"]}]
+       (when (and @snap-msg (= id (first @snap-msg)))
+         [:selectable-label {:label (second @snap-msg) :wrap true}])
+       [:button {:label "Stamp now" :hexpand true
+                 :tooltip "save a timestamped snapshot of this warp"
+                 :on-click #(future
+                              (try
+                                (let [n (loom/stamp! id)]
+                                  (reset! snap-msg [id (str "stamped " n)])
+                                  (swap! snap-version inc))
+                                (catch Exception e
+                                  (reset! snap-msg [id (str "stamp failed: " (or (ex-message e) (str e)))]))))}]
+       [:hbox {:spacing 4}
+        [:entry {:placeholder "snapshot name" :text @snap-name :hexpand true
+                 :on-change #(reset! snap-name %)}]
+        [:button {:label "Save"
+                  :tooltip "save a named snapshot of this warp"
+                  :on-click #(future
+                               (try
+                                 (let [n (loom/snapshot! id @snap-name)]
+                                   (reset! snap-name "")
+                                   (reset! snap-msg [id (str "saved " n)])
+                                   (swap! snap-version inc))
+                                 (catch Exception e
+                                   (reset! snap-msg [id (str "save failed: " (or (ex-message e) (str e)))]))))}]]
+       (if (seq snaps)
+         [:vbox {:spacing 2}
+          (for [s snaps]
+            [:hbox {:spacing 4}
+             [:label {:label s :hexpand true :xalign 0.0}]
+             [:button {:label "Restore"
+                       :tooltip (str "restore " s " — stops and re-boots this warp")
+                       :on-click #(try
+                                    (loom/restore-snapshot! id s)
+                                    (catch Exception e
+                                      (reset! snap-msg [id (str "restore failed: " (or (ex-message e) (str e)))])))}]
+             [:button {:label "✕"
+                       :tooltip (str "delete " s)
+                       :on-click #(future
+                                    (try
+                                      (loom/delete-snapshot! id s)
+                                      (reset! snap-msg [id (str "deleted " s)])
+                                      (swap! snap-version inc)
+                                      (catch Exception e
+                                        (reset! snap-msg [id (str "delete failed: " (or (ex-message e) (str e)))]))))}]])]
+         [:label {:markup [:i "No snapshots yet — stamp one."] :wrap true :xalign 0.0}])])))
+
 (defn inspector
   "The right pane: the focused warp's details and actions."
   []
@@ -182,7 +245,8 @@
        [:separator]
        [action-buttons entry]
        [:separator]
-       [save-form entry]]
+       [save-form entry]
+       [snapshots-section entry]]
       [:label {:markup [:i "Select a warp from the sidebar."] :wrap true :xalign 0.5}])]])
 
 ;; --- the bench ---------------------------------------------------------------
