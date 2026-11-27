@@ -87,12 +87,16 @@ M0–M2.3 below were executed against it.
   80/48/8/8, device creation, key+syn round-trip, name/ids/caps queries) —
   `test/jolt/libkrun_input_test.clj`.
 
-  *Open (VM e2e):* the device builds and attaches, but the guest still lists
-  only 2 virtio devices (fs+console) — no `/dev/input`. The libkrun build does
-  carry `--features input` (rebuild3.log), so this is the FFI attach path for
-  `InputDevice` (device_builders.rs `AttachDevice::attach`, `ffier(skip)`),
-  not the vtable ABI; next step is to pin that down or try the passthrough
-  (`krun_input_device_new_from_fd`) path as a cross-check.
+  *VM e2e PROVEN (2026-11-27):* with libkrunfw 7.3.6 (CONFIG_VIRTIO_INPUT=y)
+  the guest enumerates three virtio devices (fs, input, console) and
+  `/dev/input/event0` appears as `libkrun Virtual Keyboard` (Bus=0006, vendor
+  RH, product 1, `Handlers=kbd event0`). Full round-trip proven: host
+  `send-key!` → eventfd → input worker → virtio queue → guest evdev reads back
+  the exact EV_KEY/EV_SYN events (KEY_A press/release, KEY_S press/release,
+  each code/value correct). The earlier "only 2 virtio devices" observation
+  was stale — it predates the 7.3.6 kernel (6.12.91 lacks CONFIG_VIRTIO_INPUT).
+  evdev reads must be multiples of 24 (`struct input_event`), not the 8-byte
+  virtio-input event size.
 
 ## Goal
 
